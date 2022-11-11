@@ -1,0 +1,14 @@
+#!/bin/sh
+
+mkdir -p bin
+
+for x in ci.exe co.exe merge.exe rcs.exe rcsdiff.exe rlog.exe rcslib.dll; do
+  #cp rcs57pc1/bin/win32/$x bin
+  cp -a rcs57pc/$x bin/
+done
+
+for x in diff.exe diff3.exe; do
+  cp -a diffutils/$x bin/
+done
+
+exit 0

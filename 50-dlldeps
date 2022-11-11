@@ -1,0 +1,84 @@
+#!/bin/sh
+
+WINDLLS="KERNEL32.DLL ADVAPI32.DLL ntdll.dll ole32.dll USER32.dll WS2_32.dll GDI32.dll
+IPHLPAPI.DLL DNSAPI.dll imagehlp.dll CRYPT32.dll bcrypt.dll"
+
+deplister() {
+    local DLLS
+    DLLS=$(objdump -p $@  |grep  'DLL Name' | grep -v 'api-ms' |cut -c12- | sort |uniq)
+    for x in $DLLS; do
+        echo "$WINDLLS" | grep -i $x > /dev/null
+        if [ $? = 1 ]; then
+	    echo $x
+        fi
+    done
+}
+
+DLLS=$(ls Apache24/bin/*.dll vc/*.dll)
+
+DEPS=$(deplister Apache24/bin/httpd.exe Apache24/modules/*.so)
+
+echo "Check apache depedency dlls..."
+NODLLS=
+for x in $DEPS; do
+    echo " *" $x...
+    echo "$DLLS" | grep -i $x > /dev/null
+    if [ $? = 1 ]; then
+      echo "$WINDLLS" | grep -i $x > /dev/null
+      [ $? = 1 ] && NODLLS="$NODLLS $x"
+    fi
+done
+
+if [ "$NODLLS" != "" ]; then
+    echo "Not found DLLs:" $NODLLS
+else
+    echo "No deps DLL found for Apache"
+fi
+
+if [ "$NODLLS" != "" ]; then
+    DLLS=$(ls apache/Apache24/bin/*.dll)
+
+    echo $x...
+    for x in $NODLLS; do
+        DLL=$(echo "$DLLS" | grep -i $x)
+        if [ $? = 0 ]; then
+          echo " - Copy $DLL..."
+          cp -a $DLL Apache24/bin/
+        fi
+    done
+fi
+
+DLLS=$(ls Apache24/bin/*.dll php/*.dll vc/*.dll)
+
+DEPS=$(deplister php/*.exe php/*.dll php/ext/*.dll)
+
+echo "Check PHP depedency dlls..."
+for x in $DEPS; do
+    echo " *" $x...
+    echo "$DLLS" | grep -i $x > /dev/null
+    if [ $? = 1 ]; then
+      echo "$WINDLLS" | grep -i $x > /dev/null
+      [ $? = 1 ] && NODLLS="$NODLLS $x"
+    fi
+done
+
+if [ "$NODLLS" != "" ]; then
+    echo "Not found DLLs:" $NODLLS
+else
+    echo "No deps DLL found for PHP"
+fi
+
+if [ "$NODLLS" != "" ]; then
+    DLLS=$(ls php7/*.dll)
+
+    echo $x...
+    for x in $NODLLS; do
+        DLL=$(echo "$DLLS" | grep -i $x)
+        if [ $? = 0 ]; then
+          echo " - Copy $DLL..."
+          cp -a $DLL php/ 
+        fi
+    done
+fi
+
+exit 0

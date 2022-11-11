@@ -1,0 +1,56 @@
+#!/bin/sh
+
+PHPMODS="gd2 mbstring opcache gettext gmp dba ldap bz2"
+
+RE=$(echo $PHPMODS | tr " " '|')
+
+## copy required bins
+mkdir -p php/ext
+
+if [ "$PHPSRCDIR"x = "x" ]; then
+  PHPSRCDIR=php7
+fi
+
+for x in $PHPMODS; do
+  cp $PHPSRCDIR/ext/php_$x.dll php/ext
+done
+
+cp $PHPSRCDIR/*.txt php/
+cp $PHPSRCDIR/php.ini* php/
+
+DLLs="php-cgi.exe
+php7apache2_4.dll
+php7ts.dll
+libcrypto-1_1-x64.dll
+libsasl.dll
+libssl-1_1-x64.dll"
+
+for x in $DLLs; do
+  cp $PHPSRCDIR/$x php/
+done
+
+## setup
+if [ ! -f php/php.ini.orig ]; then
+  cp php/php.ini-production php/php.ini.orig
+fi
+
+sed 's,^display_errors = Off,display_errors = On,' php/php.ini.orig >tmp.ini
+sed '/^display_startup_errors =/c display_startup_errors = On' tmp.ini >tmp2.ini
+sed '/^;\s*extension_dir = "ext/c extension_dir = "..\\php\\ext"' tmp2.ini >tmp.ini
+sed '/^upload_max_filesize =/c upload_max_filesize = 12M' tmp.ini >tmp2.ini
+sed '/^post_max_size =/c post_max_size = 16M' tmp2.ini >tmp.ini
+sed '/^error_reporting =/c error_reporting = E_ALL & ~E_NOTICE & ~E_STRICT' tmp.ini >tmp2.ini
+sed '/^memory_limit =/c memory_limit = 256M' tmp2.ini >tmp.ini
+
+sed -E "s,^;extension=($RE),extension=\1," tmp.ini >tmp2.ini
+
+# add zend_extensions
+sed '/^;extension=xsl/a \nzend_extension=opcache' tmp2.ini >tmp.ini
+
+####
+cp tmp.ini php/php.ini
+
+### upx
+upx/upx php/*.dll php/ext/*.dll
+
+exit 0

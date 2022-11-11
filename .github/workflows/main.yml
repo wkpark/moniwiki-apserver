@@ -1,0 +1,101 @@
+name: Build
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - main
+    tags:
+      - '*'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - main
+
+jobs:
+  build-package:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout Repo.
+        uses: actions/checkout@v3
+
+      - name: Prepare
+        run: |
+          sudo apt-get install -y zip unzip wget cabextract binutils
+          sh 00-prepare
+
+      - name: Setup Versions
+        id: setup
+        run: |
+          HASH=$(git rev-parse HEAD | cut -c1-9)
+          echo "::set-output name=commitHash::$HASH"
+          HTTPDVER=$(ls -t httpd-*zip | head -1 | cut -d- -f2)
+          PHPVER=$(ls -t php*.zip |head -1 | cut -d- -f2)
+          echo "::set-output name=HTTPDVER::$HTTPDVER"
+          echo "::set-output name=PHPVER::$PHPVER"
+
+      - name: Build Tarball
+        run: |
+          echo "Build package..."
+          sh 01-utils
+          sh 20-apache24
+          sh 30-php7
+          sh 50-dlldeps
+          sh 50-dlldeps
+
+          zip -r apserver-apache-${{ steps.setup.outputs.HTTPDVER }}-php-${{ steps.setup.outputs.PHPVER }}.zip Apache24 php bin home.url start.cmd
+
+          mkdir release
+          mv apserver-*.zip release/
+          ls -al release
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: apserver-apache-${{ steps.setup.outputs.HTTPDVER }}-php-${{ steps.setup.outputs.PHPVER }}
+          path: ${{ github.workspace }}/release/apserver-*.zip
+
+  make-release:
+    name: Create and upload release
+    runs-on: ubuntu-18.04
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: [build-package]
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Get Metadata
+        id: metadata
+        run: |
+          ## METADATA SCRIPT
+          echo "::set-output name=version::${GITHUB_REF/refs\/tags\//}"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Generate Checksums
+        run: |
+          ## CHECKSUM GENERATION SCRIPT
+          shopt -s extglob
+          echo "### Checksums" > ${{ github.workspace }}/CHECKSUMS.txt
+          for file in ${{ github.workspace }}/**/@(*.pkg|*.exe|*.deb|*.zip|*.tgz); do
+            echo "    ${file##*/}: $(sha256sum "${file}" | cut -d " " -f 1)" >> ${{ github.workspace }}/CHECKSUMS.txt
+          done
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
+        with:
+          draft: false
+          prerelease: ${{ contains(steps.metadata.outputs.version, 'rc') || contains(steps.metadata.outputs.version, 'beta') }}
+          tag_name: ${{ steps.metadata.outputs.version }}
+          name: "apserver ${{ steps.metadata.outputs.version }}"
+          body_path: ${{ github.workspace }}/CHECKSUMS.txt
+          files: |
+            ${{ github.workspace }}/**/*.zip
+            ${{ github.workspace }}/**/*.exe
+            ${{ github.workspace }}/**/*.deb
+            ${{ github.workspace }}/**/*.tgz
+            ${{ github.workspace }}/**/*.pkg
