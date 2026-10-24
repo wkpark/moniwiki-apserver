@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PHPMODS="gd2 mbstring opcache gettext gmp dba ldap bz2"
+PHPMODS="gd mbstring opcache gettext gmp dba ldap bz2"
 
 RE=$(echo $PHPMODS | tr " " '|')
 
@@ -8,7 +8,7 @@ RE=$(echo $PHPMODS | tr " " '|')
 mkdir -p php/ext
 
 if [ "$PHPSRCDIR"x = "x" ]; then
-  PHPSRCDIR=php7
+  PHPSRCDIR=php8
 fi
 
 for x in $PHPMODS; do
@@ -19,11 +19,11 @@ cp $PHPSRCDIR/*.txt php/
 cp $PHPSRCDIR/php.ini* php/
 
 DLLs="php-cgi.exe
-php7apache2_4.dll
-php7ts.dll
-libcrypto-1_1-x64.dll
+php8apache2_4.dll
+php8ts.dll
+libcrypto-3-x64.dll
 libsasl.dll
-libssl-1_1-x64.dll"
+libssl-3-x64.dll"
 
 for x in $DLLs; do
   cp $PHPSRCDIR/$x php/
