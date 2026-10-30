@@ -4,8 +4,8 @@ Apache + PHP server package builder for MoniWiki
 This is a set of build scripts to make a portable apache+PHP server package for windows users.
 This script utilizes the apache/PHP windows packages distributed by official/unofficial sites.
 
- * PHP : php7.4.x from https://windows.php.net/downloads/releases/archives/
- * Apache : apache2.4.x from https://www.apachelounge.com/download/VC15/
+ * PHP : php8.2.x (vs16) from https://windows.php.net/downloads/releases/archives/
+ * Apache : apache2.4.x (VS17) from https://www.apachelounge.com/download/VS17/
  * rcs57+diffutils for PC: original site: https://www.cs.purdue.edu/homes/trinkle/RCShome/
    * https://github.com/wkpark/rcs57pc - rcs57 mingw32 64bit build.
    * https://github.com/wkpark/pc-diffutils - diffutils 2.7.1 mingw32 64bit build.

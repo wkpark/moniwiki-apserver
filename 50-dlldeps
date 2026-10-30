@@ -69,7 +69,7 @@ else
 fi
 
 if [ "$NODLLS" != "" ]; then
-    DLLS=$(ls php7/*.dll)
+    DLLS=$(ls php8/*.dll)
 
     echo $x...
     for x in $NODLLS; do
